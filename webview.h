@@ -552,6 +552,58 @@ public:
                                    NULL, NULL);
   }
 
+  void show_message_box(const std::string msg) {
+    GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT;
+    GtkWidget *dialog =
+        gtk_message_dialog_new(GTK_WINDOW(m_window), flags, GTK_MESSAGE_INFO,
+                               GTK_BUTTONS_OK, msg.c_str());
+    gtk_dialog_run(GTK_DIALOG(dialog));
+    gtk_widget_destroy(dialog);
+  }
+
+  void show_open_file_dialog(const std::string title,
+                             const std::string mimeType,
+                             std::vector<std::string> &ret,
+                             bool multi = false) {
+    ret.clear();
+
+    GtkWidget *dialog;
+    GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
+
+    dialog = gtk_file_chooser_dialog_new(
+        title.c_str(), GTK_WINDOW(m_window), action, ("_Cancel"),
+        GTK_RESPONSE_CANCEL, "_Open", GTK_RESPONSE_ACCEPT, NULL);
+
+    GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
+    GtkFileFilter *filter = gtk_file_filter_new();
+    gtk_file_filter_add_mime_type(filter, mimeType.c_str());
+    gtk_file_chooser_set_filter(chooser, filter);
+    gtk_file_chooser_set_select_multiple(chooser, multi);
+
+    gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+    if (res == GTK_RESPONSE_ACCEPT) {
+      if (multi) {
+        GSList *fileList;
+        fileList = gtk_file_chooser_get_filenames(chooser);
+        GSList *fileIter = fileList;
+        while(fileIter != NULL)
+        {
+          ret.push_back(std::string((gchar *)fileIter->data));
+          g_free(fileIter->data);
+          fileIter = fileIter->next;
+        }
+        g_slist_free(fileList);
+      } else {
+        char *filename;
+        filename = gtk_file_chooser_get_filename(chooser);
+        ret.push_back(std::string(filename));
+        g_free(filename);
+      }
+    }
+
+    gtk_widget_destroy(dialog);
+  }
+
 private:
   virtual void on_message(const std::string msg) = 0;
   GtkWidget *m_window;
